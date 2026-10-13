@@ -114,6 +114,9 @@ func (a *Alipay) MerchantIdentityMetadata() map[string]string {
 //   - Desktop, paymentMode == "redirect": skip precreate and go straight to
 //     alipay.trade.page.pay so the frontend always opens the Alipay checkout
 //     in a new tab. Use this when the merchant has not enabled FACE_TO_FACE_PAYMENT.
+//   - Desktop, paymentMode == "wap": merchant only signed 手机网站支付
+//     (QUICK_WAP_WAY). Build a wap-pay gateway URL and expose it via the
+//     QRCode field: the Alipay app scans it and opens the H5 cashier in-app.
 //
 // Note: alipay.trade.page.pay returns a checkout page URL, not a scannable
 // payment QR. Never expose it via the QRCode field.
@@ -168,6 +171,21 @@ func (a *Alipay) createDesktopTrade(ctx context.Context, client *alipay.Client, 
 		return a.createPagePayTrade(client, req, notifyURL, returnURL)
 	}
 
+	// Explicit wap mode: merchant only signed 手机网站支付. Neither precreate
+	// (当面付) nor page pay (电脑网站支付) is available, so build the wap-pay
+	// gateway URL and expose it as the QR payload — the Alipay app scans it and
+	// opens the H5 cashier in-app. The QR carries the site's /pay-qr/ redirect
+	// (short, fast to scan); PayURL keeps the full gateway URL as a secondary
+	// "open link" option for users who prefer the browser flow.
+	if strings.EqualFold(strings.TrimSpace(a.config["paymentMode"]), "wap") {
+		resp, err := a.createWapTrade(client, req, notifyURL, returnURL)
+		if err != nil {
+			return nil, err
+		}
+		resp.QRCode = a.wapShortPayURL(req.OrderID, resp.PayURL)
+		return resp, nil
+	}
+
 	resp, precreateErr := a.createPrecreateTrade(ctx, client, req, notifyURL)
 	if precreateErr == nil {
 		return resp, nil
@@ -179,6 +197,21 @@ func (a *Alipay) createDesktopTrade(ctx context.Context, client *alipay.Client, 
 	}
 
 	return nil, fmt.Errorf("alipay desktop payment failed: precreate=%v; pagepay=%w", precreateErr, pagePayErr)
+}
+
+// wapShortPayURL builds a compact QR payload pointing at this site's public
+// /pay-qr/{orderNo} redirect route instead of embedding the full signed wap
+// gateway URL (~900 chars), which renders a very dense QR that scans slowly.
+// The scanning app follows the 302 and lands on the Alipay H5 cashier. Falls
+// back to the full wap URL when no site origin can be derived from the
+// provider's return/notify URLs.
+func (a *Alipay) wapShortPayURL(orderID, longPayURL string) string {
+	for _, raw := range []string{a.config["returnUrl"], a.config["notifyUrl"]} {
+		if u, err := url.Parse(strings.TrimSpace(raw)); err == nil && u.Host != "" {
+			return u.Scheme + "://" + u.Host + "/pay-qr/" + orderID
+		}
+	}
+	return longPayURL
 }
 
 func (a *Alipay) createPrecreateTrade(ctx context.Context, client *alipay.Client, req payment.CreatePaymentRequest, notifyURL string) (*payment.CreatePaymentResponse, error) {
