@@ -121,7 +121,10 @@
           >
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
             <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+            <span class="sidebar-label sidebar-label-flex" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+              <span class="min-w-0 truncate">{{ item.label }}</span>
+              <span v-if="item.code" class="sidebar-code">{{ item.code }}</span>
+            </span>
           </router-link>
         </div>
       </template>
@@ -129,20 +132,30 @@
       <!-- Regular User View -->
       <template v-else-if="!appStore.backendModeEnabled">
         <div class="sidebar-section">
-          <router-link
-            v-for="item in userNavItems"
-            :key="item.path"
-            :to="item.path"
-            class="sidebar-link mb-1"
-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
-            :title="sidebarCollapsed ? item.label : undefined"
-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
-            @click="handleMenuItemClick(item.path)"
-          >
-            <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
-            <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
-          </router-link>
+          <template v-for="group in userNavGroups" :key="group.label">
+            <div class="sidebar-section-title" :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+              <span class="sidebar-section-title-text" :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }">
+                {{ group.label }}
+              </span>
+            </div>
+            <router-link
+              v-for="item in group.items"
+              :key="item.path"
+              :to="item.path"
+              class="sidebar-link mb-1"
+              :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
+              :title="sidebarCollapsed ? item.label : undefined"
+              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
+              @click="handleMenuItemClick(item.path)"
+            >
+              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
+              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
+              <span class="sidebar-label sidebar-label-flex" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+                <span class="min-w-0 truncate">{{ item.label }}</span>
+                <span v-if="item.code" class="sidebar-code">{{ item.code }}</span>
+              </span>
+            </router-link>
+          </template>
         </div>
       </template>
     </nav>
@@ -203,6 +216,8 @@ import { useBatchImageAccess } from '@/composables/useBatchImageAccess'
 interface NavItem {
   path: string
   label: string
+  /** 行右侧的英文码(装饰性,如 HOME / KEYS),仅展开态显示 */
+  code?: string
   icon: unknown
   iconSvg?: string
   hideInSimpleMode?: boolean
@@ -481,6 +496,22 @@ const PluginIcon = {
   render: () => h(Icon, { name: 'cube' })
 }
 
+// book-open (heroicons outline) — 帮助文档(/tutorial)入口图标
+const BookOpenIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25'
+        })
+      ]
+    )
+}
+
 const BellIcon = {
   render: () =>
     h(
@@ -712,35 +743,51 @@ const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
 
-// buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
-// withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
-//
-// 条目顺序：密钥 → 用量 → 可用渠道 → 渠道状态 → 订阅/支付 → 兑换/资料。
-// 可用渠道紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
+// selfNavGroups 按参考设计分两大组（导航 / 服务），每项带右侧英文码。
+// 自定义菜单里的 md:help 旧帮助页在此隐藏(数据保留,路由仍可访问)。
+function selfNavGroups(): { label: string; items: NavItem[] }[] {
+  return [
+    {
+      label: t('nav.groupNavigate'),
+      items: [
+        { path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon, code: 'HOME' },
+        { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon, code: 'KEYS' },
+        { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess, code: 'IMAGE' },
+        { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true, code: 'USAGE' },
+        { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels, code: 'CHANNELS' },
+        { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor, code: 'STATUS' },
+        { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate, code: 'INVITE' },
+        { path: '/tutorial', label: t('nav.tutorial'), icon: BookOpenIcon, code: 'DOCS' },
+      ],
+    },
+    {
+      label: t('nav.groupService'),
+      items: [
+        { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription, code: 'SUBS' },
+        { path: '/purchase', label: purchaseNavLabel.value, icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment, code: 'SHOP' },
+        { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment, code: 'BILLS' },
+        { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true, code: 'REDEEM' },
+        { path: '/profile', label: t('nav.profile'), icon: UserIcon, code: 'ACCOUNT' },
+        ...customMenuItemsForUser.value.map((item): NavItem => ({
+          path: `/custom/${item.id}`,
+          label: item.label,
+          icon: null,
+          iconSvg: item.icon_svg,
+        })),
+      ],
+    },
+  ]
+}
+
+// buildSelfNavItems 平铺版本(管理员的"我的账户"子菜单用,该区已有独立标题,不再嵌套分组)。
 function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   const items: NavItem[] = []
   if (withDashboard) {
     items.push({ path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon })
   }
-  items.push(
-    { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
-    { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess },
-    { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
-    { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
-    { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
-    { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
-    { path: '/purchase', label: purchaseNavLabel.value, icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment },
-    { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment },
-    { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
-    { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
-    { path: '/profile', label: t('nav.profile'), icon: UserIcon },
-    ...customMenuItemsForUser.value.map((item): NavItem => ({
-      path: `/custom/${item.id}`,
-      label: item.label,
-      icon: null,
-      iconSvg: item.icon_svg,
-    })),
-  )
+  for (const group of selfNavGroups()) {
+    items.push(...group.items)
+  }
   return items
 }
 
@@ -750,19 +797,24 @@ function finalizeNav(items: NavItem[]): NavItem[] {
   return authStore.isSimpleMode ? visible.filter(item => !item.hideInSimpleMode) : visible
 }
 
-// User navigation items (for regular users)
-const userNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(true)))
+// User navigation (regular user main menu): grouped by usage type (导航 / 服务).
+const userNavGroups = computed(() =>
+  selfNavGroups()
+    .map((g) => ({ label: g.label, items: finalizeNav(g.items) }))
+    .filter((g) => g.items.length > 0),
+)
 
 // Personal navigation items (for admin's "My Account" section, without Dashboard).
 // Admins access 可用渠道 from this section just like regular users — there is no
 // separate admin entry, since the page is purely a user-facing view.
 const personalNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(false)))
 
-// Custom menu items filtered by visibility
+// Custom menu items filtered by visibility (md:help 旧帮助页已被内置 /tutorial 取代,不在侧栏展示)
 const customMenuItemsForUser = computed(() => {
   const items = appStore.cachedPublicSettings?.custom_menu_items ?? []
   return items
     .filter((item) => item.visibility === 'user')
+    .filter((item) => item.page_slug !== 'help' && item.url !== 'md:help')
     .sort((a, b) => a.sort_order - b.sort_order)
 })
 
@@ -1076,6 +1128,32 @@ onBeforeUnmount(() => {
     opacity 0.12s ease,
     transform 0.12s ease;
   max-width: 12rem;
+}
+
+.sidebar-label-flex {
+  /* 必须撑满行内剩余宽度,否则 space-between 失效,英文码会紧跟中文标签无法成列 */
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* 行右侧英文码(参考机场面板): 大写、宽字距、弱化色;固定宽度使各码左缘
+   对齐成同一竖列(列起点 = 行宽 - 右内边距 - 码宽),折叠态由 sidebar-label-collapsed 隐藏 */
+.sidebar-code {
+  flex-shrink: 0;
+  width: 5.5rem;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(156 163 175 / 0.9);
+}
+.dark .sidebar-code {
+  color: rgb(100 116 139 / 0.9);
+}
+.sidebar-label-collapsed .sidebar-code {
+  display: none;
 }
 
 .sidebar-label-flex {

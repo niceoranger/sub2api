@@ -50,6 +50,8 @@ export default {
       },
       fontFamily: {
         sans: [
+          'Inter Variable',
+          'Inter',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
