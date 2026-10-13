@@ -88,6 +88,14 @@ func RegisterPaymentRoutes(
 		webhook.POST("/airwallex", webhookHandler.AirwallexWebhook)
 	}
 
+	// --- Merchant payment endpoints (HMAC-authenticated in handler) ---
+	// External same-operator sites collect payments through this instance.
+	merchant := v1.Group("/merchant/payment")
+	{
+		merchant.POST("/orders", paymentHandler.CreateMerchantOrder)
+		merchant.GET("/orders/:out_trade_no", paymentHandler.GetMerchantOrder)
+	}
+
 	// --- Admin payment endpoints (admin auth) ---
 	adminGroup := v1.Group("/admin/payment")
 	adminGroup.Use(gin.HandlerFunc(adminAuth))
@@ -128,6 +136,14 @@ func RegisterPaymentRoutes(
 			providers.POST("", adminPaymentHandler.CreateProvider)
 			providers.PUT("/:id", adminPaymentHandler.UpdateProvider)
 			providers.DELETE("/:id", adminPaymentHandler.DeleteProvider)
+		}
+
+		// Merchant registry (merchant payment API)
+		merchants := adminGroup.Group("/merchants")
+		{
+			merchants.GET("", adminPaymentHandler.ListMerchants)
+			merchants.POST("", adminPaymentHandler.CreateMerchant)
+			merchants.PUT("/:id", adminPaymentHandler.UpdateMerchant)
 		}
 	}
 }

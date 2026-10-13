@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -588,6 +591,28 @@ func (h *PaymentHandler) VerifyOrderPublic(c *gin.Context) {
 	response.Success(c, buildPublicOrderVerifyResult(order))
 }
 
+// RedirectPayQR resolves a compact payment QR payload to the order's persisted
+// pay URL via 302. The QR exposed by paymentMode=wap desktop orders points here
+// so the encoded content stays ~40 chars instead of the ~900-char signed wap
+// gateway URL; scanning apps follow the redirect to the Alipay H5 cashier.
+// GET /pay-qr/:order_no
+func (h *PaymentHandler) RedirectPayQR(c *gin.Context) {
+	order, err := h.paymentService.VerifyOrderPublic(c.Request.Context(), c.Param("order_no"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	payURL := ""
+	if order.PayURL != nil {
+		payURL = strings.TrimSpace(*order.PayURL)
+	}
+	if payURL == "" {
+		response.NotFound(c, "pay url not available")
+		return
+	}
+	c.Redirect(http.StatusFound, payURL)
+}
+
 // ResolveOrderPublicByResumeToken resolves a payment order from a signed resume token.
 // POST /api/v1/payment/public/orders/resolve
 func (h *PaymentHandler) ResolveOrderPublicByResumeToken(c *gin.Context) {
@@ -694,4 +719,84 @@ func sanitizePaymentOrderForResponse(order *dbent.PaymentOrder) *PaymentOrderRes
 
 func isWeChatBrowser(c *gin.Context) bool {
 	return strings.Contains(strings.ToLower(c.GetHeader("User-Agent")), "micromessenger")
+}
+
+// --- Merchant payment API (HMAC-authenticated, external sites) ---
+
+type merchantCreateOrderPayload struct {
+	Amount     float64 `json:"amount" binding:"required"`
+	Subject    string  `json:"subject"`
+	OutOrderID string  `json:"out_order_id"`
+	NotifyURL  string  `json:"notify_url"`
+	ReturnURL  string  `json:"return_url"`
+	IsMobile   bool    `json:"is_mobile"`
+	PayMethod  string  `json:"pay_method"`
+}
+
+// verifyMerchantAuth loads the raw body, verifies X-Merchant-Id/X-Timestamp/
+// X-Signature, and returns the authenticated merchant.
+func (h *PaymentHandler) verifyMerchantAuth(c *gin.Context) (*service.PaymentMerchant, bool) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.BadRequest(c, "cannot read body")
+		return nil, false
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
+	merchant, err := h.paymentService.VerifyMerchantSignature(
+		c.Request.Context(),
+		c.GetHeader("X-Merchant-Id"),
+		c.GetHeader("X-Timestamp"),
+		c.GetHeader("X-Signature"),
+		body,
+	)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return nil, false
+	}
+	return merchant, true
+}
+
+// CreateMerchantOrder creates a payment order on behalf of an external merchant.
+// POST /api/v1/merchant/payment/orders
+func (h *PaymentHandler) CreateMerchantOrder(c *gin.Context) {
+	merchant, ok := h.verifyMerchantAuth(c)
+	if !ok {
+		return
+	}
+	var req merchantCreateOrderPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	res, err := h.paymentService.CreateMerchantOrder(c.Request.Context(), merchant, service.MerchantCreateOrderRequest{
+		OutOrderID: req.OutOrderID,
+		Amount:     req.Amount,
+		Subject:    req.Subject,
+		NotifyURL:  req.NotifyURL,
+		ReturnURL:  req.ReturnURL,
+		IsMobile:   req.IsMobile,
+		PayMethod:  req.PayMethod,
+		ClientIP:   c.ClientIP(),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, res)
+}
+
+// GetMerchantOrder returns merchant order status by out_trade_no.
+// GET /api/v1/merchant/payment/orders/:out_trade_no
+// (signature computed over the empty body: timestamp + "." + "")
+func (h *PaymentHandler) GetMerchantOrder(c *gin.Context) {
+	merchant, ok := h.verifyMerchantAuth(c)
+	if !ok {
+		return
+	}
+	res, err := h.paymentService.GetMerchantOrder(c.Request.Context(), merchant, c.Param("out_trade_no"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, res)
 }
