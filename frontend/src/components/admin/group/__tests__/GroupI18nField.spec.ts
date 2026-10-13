@@ -87,45 +87,45 @@ describe('GroupI18nField', () => {
 
     await trigger(wrapper).trigger('click')
 
+    // 站点语言注册表已按稳得AI 定制仅保留中文（i18n/index.ts availableLocales）
     expect(menuItems(wrapper).map((item) => [item.attributes('data-locale'), item.text()])).toEqual([
       ['default', 'admin.groups.i18nField.default'],
-      ['en', 'admin.groups.i18nField.edit:English'],
       ['zh', 'admin.groups.i18nField.add:中文']
     ])
   })
 
   it('switches the same input to the chosen language version', async () => {
-    const { wrapper, state } = mountField({ text: '标准', i18n: { en: { name: 'Standard' } } })
+    const { wrapper, state } = mountField({ text: '标准', i18n: { zh: { name: '标准文' } } })
 
-    await choose(wrapper, 'en')
+    await choose(wrapper, 'zh')
 
     expect(menuItems(wrapper)).toHaveLength(0)
     expect(wrapper.findAll('input')).toHaveLength(1)
     const input = wrapper.get('input')
-    expect(input.element.value).toBe('Standard')
+    expect(input.element.value).toBe('标准文')
     expect(document.activeElement).toBe(input.element)
-    expect(trigger(wrapper).text()).toBe('English')
+    expect(trigger(wrapper).text()).toBe('中文')
 
-    await input.setValue('Standard v2')
+    await input.setValue('标准文 v2')
 
     expect(state.text).toBe('标准')
-    expect(state.i18n).toEqual({ en: { name: 'Standard v2' } })
+    expect(state.i18n).toEqual({ zh: { name: '标准文 v2' } })
   })
 
   it('starts a new language version empty and keeps the other field of that language', async () => {
     const { wrapper, state } = mountField({
       text: '标准',
-      i18n: { en: { description: 'Pro + Max pool' } }
+      i18n: { zh: { description: '专业 + 号池' } }
     })
 
-    await choose(wrapper, 'en')
+    await choose(wrapper, 'zh')
     const input = wrapper.get('input')
     expect(input.element.value).toBe('')
-    expect(input.attributes('placeholder')).toBe('admin.groups.i18nField.placeholder:English')
+    expect(input.attributes('placeholder')).toBe('admin.groups.i18nField.placeholder:中文')
 
-    await input.setValue('Standard')
+    await input.setValue('标准文')
 
-    expect(state.i18n).toEqual({ en: { name: 'Standard', description: 'Pro + Max pool' } })
+    expect(state.i18n).toEqual({ zh: { name: '标准文', description: '专业 + 号池' } })
   })
 
   it('returns to the default content from a language version', async () => {
@@ -163,7 +163,7 @@ describe('GroupI18nField', () => {
     expect(input.attributes('placeholder')).toBe('Enter name')
     expect(input.attributes('data-tour')).toBe('group-form-name')
 
-    await choose(wrapper, 'en')
+    await choose(wrapper, 'zh')
 
     expect(wrapper.get('input').attributes('required')).toBeUndefined()
   })
@@ -176,18 +176,18 @@ describe('GroupI18nField', () => {
     expect(wrapper.findAll('textarea')).toHaveLength(1)
     expect(wrapper.get('textarea').attributes('rows')).toBe('3')
 
-    await choose(wrapper, 'en')
-    await wrapper.get('textarea').setValue('Pro + Max pool')
+    await choose(wrapper, 'zh')
+    await wrapper.get('textarea').setValue('专业 + 号池')
 
     expect(wrapper.findAll('textarea')).toHaveLength(1)
-    expect(state.i18n).toEqual({ en: { description: 'Pro + Max pool' } })
+    expect(state.i18n).toEqual({ zh: { description: '专业 + 号池' } })
     expect(state.text).toBe('号池')
   })
 
   it('closes the menu when clicking elsewhere', async () => {
     const { wrapper } = mountField({ text: '标准', i18n: {} })
     await trigger(wrapper).trigger('click')
-    expect(menuItems(wrapper)).toHaveLength(3)
+    expect(menuItems(wrapper)).toHaveLength(2)
 
     document.body.click()
     await wrapper.vm.$nextTick()

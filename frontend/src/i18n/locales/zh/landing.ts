@@ -15,10 +15,10 @@ export default {
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
     // 新增：面向用户的价值主张
-    heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
+    heroSubtitle: '一个密钥，畅用所有主流 AI 模型',
+    heroDescription: '汇聚国内主流 AI 模型，一个密钥即可接入 DeepSeek、通义千问、Kimi、智谱清言等所有 AI 服务',
     tags: {
-      subscriptionToApi: '订阅转 API',
+      subscriptionToApi: '多模型聚合',
       stickySession: '会话保持',
       realtimeBilling: '按量计费'
     },
@@ -50,6 +50,8 @@ export default {
       subtitle: '简单三步，开始省心使用 AI'
     },
     features: {
+      title: '核心能力',
+      description: '一个平台，汇聚所有主流 AI 模型',
       unifiedGateway: '一键接入',
       unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
       multiAccount: '稳定可靠',
@@ -58,56 +60,81 @@ export default {
       balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
     },
     // 优势对比
-    comparison: {
-      title: '为什么选择我们？',
-      headers: {
-        feature: '对比项',
-        official: '官方订阅',
-        us: '本平台'
-      },
-      items: {
-        pricing: {
-          feature: '付费方式',
-          official: '固定月费，用不完也付',
-          us: '按量付费，用多少付多少'
+    models: {
+      title: '支持的模型家族',
+      description: '四大主流国产模型家族一站接入，一个密钥自由切换',
+      supported: '已支持',
+      note: '模型列表持续更新，具体可用模型与定价以控制台为准',
+      families: {
+        deepseek: {
+          name: 'DeepSeek',
+          vendor: '深度求索',
+          desc: 'V4 旗舰与 Flash 轻量双线并行，深度推理与通用对话的行业性价比标杆',
+          models: 'deepseek-v4-pro, deepseek-v4-flash, deepseek-chat, deepseek-reasoner',
+          tags: '深度推理, 高性价比'
         },
-        models: {
-          feature: '模型选择',
-          official: '单一服务商',
-          us: '多模型随意切换'
+        qwen: {
+          name: '通义千问 Qwen',
+          vendor: '阿里云',
+          desc: '从 Max 旗舰到 Flash 极速的全尺寸矩阵，多模态与长文本能力全面',
+          models: 'qwen3.8-max, qwen3.8-flash, qwen-plus, qwen-turbo',
+          tags: '全尺寸, 多模态'
         },
-        management: {
-          feature: '账号管理',
-          official: '每个服务单独管理',
-          us: '统一密钥，一站管理'
+        kimi: {
+          name: 'Kimi',
+          vendor: '月之暗面 Moonshot',
+          desc: '长上下文先驱，K2.8 系列 Agent 与工具调用能力出色，适合复杂任务编排',
+          models: 'kimi-k2.8-preview, kimi-k2, moonshot-v1-128k',
+          tags: '长上下文, Agent'
         },
-        stability: {
-          feature: '服务稳定性',
-          official: '单账号易触发限制',
-          us: '多账号池，自动切换'
-        },
-        control: {
-          feature: '用量控制',
-          official: '无法限制',
-          us: '可设配额、查明细'
+        glm: {
+          name: 'GLM 智谱',
+          vendor: '智谱 Z.ai',
+          desc: 'GLM-5.3 旗舰与 Flash 轻量版，代码生成与逻辑推理均衡的国产开源标杆',
+          models: 'glm-5.3, glm-5.3-flash, glm-4.5-air',
+          tags: '代码, 推理'
         }
       }
     },
-    providers: {
-      title: '已支持的 AI 模型',
-      description: '一个 API，多种选择',
-      supported: '已支持',
-      soon: '即将推出',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: '更多'
+    quickstart: {
+      title: '三分钟完成接入',
+      description: 'OpenAI 兼容格式，现有代码只需替换 base_url 与密钥即可无缝迁移',
+      stepOneTitle: '获取 API 密钥',
+      stepOneDesc: '注册后在控制台「API 密钥」页一键创建',
+      stepTwoTitle: '替换接入地址',
+      stepTwoDesc: '将客户端 base_url 指向本站，密钥填入 sk- 开头的密钥',
+      tabCurl: 'curl',
+      tabPython: 'Python',
+      tabSdk: 'OpenAI SDK',
+      compatibilityNote: '兼容所有支持自定义 OpenAI 接入的工具：ChatGPT-Next-Web、LobeChat、Cursor、Claude Code 等'
     },
     // CTA 区块
     cta: {
       title: '准备好开始了吗？',
-      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
+      description: '注册即可获得免费试用额度，体验全模型一站式接入',
       button: '免费注册'
+    },
+    // FAQ
+    faq: {
+      title: '常见问题',
+      items: {
+        q1: {
+          question: '什么是多模型集合平台？',
+          answer: '我们将多个主流 AI 模型（DeepSeek、通义千问、Kimi、智谱等）聚合在一个平台，您只需一个 API 密钥即可调用所有模型，无需分别注册各个平台。'
+        },
+        q2: {
+          question: 'API 格式兼容吗？',
+          answer: '完全兼容 OpenAI Chat Completions API 格式。您现有的代码只需将 base_url 和 api_key 替换为我们的地址和密钥即可使用，无需修改任何业务逻辑。'
+        },
+        q3: {
+          question: '如何计费？',
+          answer: '按实际使用量计费，用多少付多少。支持充值余额和设置配额上限，方便控制团队开支。'
+        },
+        q4: {
+          question: '服务稳定性如何保证？',
+          answer: '平台采用多账号池化架构，智能调度引擎自动负载均衡和故障切换，单一账号异常不影响整体服务。'
+        }
+      }
     },
     footer: {
       allRightsReserved: '保留所有权利。'
@@ -192,8 +219,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API 安装向导',
-    description: '配置您的 Sub2API 实例',
+    title: '稳得AI 安装向导',
+    description: '配置您的 稳得AI 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',

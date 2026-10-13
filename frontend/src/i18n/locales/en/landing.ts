@@ -15,10 +15,10 @@ export default {
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
     // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
+    heroSubtitle: 'One Key, All Leading AI Models',
+    heroDescription: 'All leading AI models in one place. Access Claude, GPT, Gemini, DeepSeek, Qwen and more with a single API key',
     tags: {
-      subscriptionToApi: 'Subscription to API',
+      subscriptionToApi: 'Multi-Model Aggregation',
       stickySession: 'Session Persistence',
       realtimeBilling: 'Pay As You Go'
     },
@@ -50,6 +50,8 @@ export default {
       subtitle: 'Three simple steps to stress-free AI access'
     },
     features: {
+      title: 'Core Capabilities',
+      description: 'One platform bringing together all mainstream AI models',
       unifiedGateway: 'One-Click Access',
       unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
       multiAccount: 'Always Reliable',
@@ -57,57 +59,68 @@ export default {
       balanceQuota: 'Pay What You Use',
       balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
     },
-    // Comparison section
-    comparison: {
-      title: 'Why Choose Us?',
-      headers: {
-        feature: 'Comparison',
-        official: 'Official Subscriptions',
-        us: 'Our Platform'
-      },
-      items: {
-        pricing: {
-          feature: 'Pricing',
-          official: 'Fixed monthly fee, pay even if unused',
-          us: 'Pay only for what you use'
+    models: {
+      title: 'Supported Model Families',
+      description: 'Four leading model families, one API key — switch freely',
+      supported: 'Supported',
+      note: 'The model lineup keeps growing; available models and pricing are subject to the console',
+      families: {
+        deepseek: {
+          name: 'DeepSeek',
+          vendor: 'DeepSeek AI',
+          desc: 'V4 flagship and lightweight Flash line — the industry benchmark for deep reasoning and value',
+          models: 'deepseek-v4-pro, deepseek-v4-flash, deepseek-chat, deepseek-reasoner',
+          tags: 'Deep reasoning, Great value'
         },
-        models: {
-          feature: 'Model Selection',
-          official: 'Single provider only',
-          us: 'Switch between models freely'
+        qwen: {
+          name: 'Qwen',
+          vendor: 'Alibaba Cloud',
+          desc: 'Full-size matrix from Max flagship to Flash speed, with strong multimodal and long-context skills',
+          models: 'qwen3.8-max, qwen3.8-flash, qwen-plus, qwen-turbo',
+          tags: 'Full-size, Multimodal'
         },
-        management: {
-          feature: 'Account Management',
-          official: 'Manage each service separately',
-          us: 'Unified key, one dashboard'
+        kimi: {
+          name: 'Kimi',
+          vendor: 'Moonshot AI',
+          desc: 'Long-context pioneer; the K2.8 series excels at agentic workflows and tool use',
+          models: 'kimi-k2.8-preview, kimi-k2, moonshot-v1-128k',
+          tags: 'Long context, Agent'
         },
-        stability: {
-          feature: 'Stability',
-          official: 'Single account rate limits',
-          us: 'Multi-account pool, auto-failover'
-        },
-        control: {
-          feature: 'Usage Control',
-          official: 'Not available',
-          us: 'Quotas & detailed analytics'
+        glm: {
+          name: 'GLM',
+          vendor: 'Zhipu Z.ai',
+          desc: 'GLM-5.3 flagship plus Flash lightweight — a balanced open-source leader for code and reasoning',
+          models: 'glm-5.3, glm-5.3-flash, glm-4.5-air',
+          tags: 'Code, Reasoning'
         }
       }
     },
-    providers: {
-      title: 'Supported AI Models',
-      description: 'One API, Multiple Choices',
-      supported: 'Supported',
-      soon: 'Soon',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: 'More'
+    quickstart: {
+      title: 'Integrate in Three Minutes',
+      description: 'OpenAI-compatible — just swap the base_url and key, no code changes needed',
+      stepOneTitle: 'Get your API key',
+      stepOneDesc: 'Create one from the API Keys page after sign-up',
+      stepTwoTitle: 'Point your client here',
+      stepTwoDesc: 'Set base_url to this site and use your sk- key',
+      tabCurl: 'curl',
+      tabPython: 'Python',
+      tabSdk: 'OpenAI SDK',
+      compatibilityNote: 'Works with any tool that supports a custom OpenAI endpoint: ChatGPT-Next-Web, LobeChat, Cursor, Claude Code and more'
     },
     // CTA section
     cta: {
       title: 'Ready to Get Started?',
-      description: 'Sign up now and get free trial credits to experience seamless AI access',
+      description: 'Sign up now and get free trial credits to access all leading AI models',
       button: 'Sign Up Free'
+    },
+    faq: {
+      title: 'FAQ',
+      items: {
+        q1: { question: 'What is a multi-model aggregation platform?', answer: 'We aggregate multiple leading AI models (DeepSeek, Qwen, Kimi, Zhipu, etc.) into one platform. You only need one API key to access all models.' },
+        q2: { question: 'Is the API format compatible?', answer: 'Fully compatible with OpenAI Chat Completions API format. Just replace the base_url and api_key in your existing code.' },
+        q3: { question: 'How does billing work?', answer: 'Pay-as-you-go based on actual usage. Supports balance top-up and quota limits for team spending control.' },
+        q4: { question: 'How is service stability ensured?', answer: 'Multi-account pool architecture with smart scheduling engine for automatic load balancing and failover.' }
+      }
     },
     footer: {
       allRightsReserved: 'All rights reserved.'
@@ -192,8 +205,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API Setup',
-    description: 'Configure your Sub2API instance',
+    title: 'Wode AI Setup',
+    description: 'Configure your Wode AI instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
